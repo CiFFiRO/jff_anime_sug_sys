@@ -1,0 +1,21 @@
+producer:
+  topic: 'anime-events'
+  compression: 'gzip'
+  max_messages_per_batch: 100000
+  data_path: '../UserAnimeList.csv'
+
+consumer:
+  topic: 'anime-events'
+  group: 'collect-group'
+  insert_batch_size: 1000
+
+hadoop:
+  user: 'ubuntu'
+
+hive:
+  port: 10000
+  user: 'hive'
+  database: 'anime'
+  table: 'user_score'
+  settings:
+    hive.execution.engine: 'spark'
