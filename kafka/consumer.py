@@ -14,10 +14,11 @@ def flush_data(
         cursor: hive.Cursor, config
 ) -> None:
     """Insert data into Hive table.
-    :param data:
-    :param logger:
-    :param cursor:
-    :param config:
+
+    :param data: list content.
+    :param logger: logger.
+    :param cursor: hive cursor.
+    :param config: configuration.
     :return:
     """
     if len(data) == 0:
