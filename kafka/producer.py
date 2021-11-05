@@ -1,5 +1,6 @@
 import os
 import csv
+import sys
 import json
 import logging
 import multiprocessing
@@ -9,7 +10,7 @@ import yaml
 from confluent_kafka import Producer
 
 
-def loader(broker: str, cpu_number: int, trigger_number: int, config) -> None:
+def loader(broker: str, cpu_number: int, trigger_number: int, config: dict) -> None:
     """Kafka producer part csv data.
 
     :param broker: broker address.
@@ -18,6 +19,11 @@ def loader(broker: str, cpu_number: int, trigger_number: int, config) -> None:
     :param config: loaded config.
     :return:
     """
+    logging.basicConfig(
+        format="[%(asctime)s] %(levelname)s [%(name)s.%(funcName)s:%(lineno)d] %(message)s",
+        datefmt="%d/%b/%Y %H:%M:%S",
+        stream=sys.stdout
+    )
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
 
