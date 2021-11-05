@@ -1,0 +1,2 @@
+pyspark==3.0.2 # version must be equal spark version (check by command: spark-submit --version)
+PyYAML>=6.0
