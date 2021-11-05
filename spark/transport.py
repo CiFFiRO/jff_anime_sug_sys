@@ -130,7 +130,7 @@ def write_data_into_table(info: ProcessingInfo) -> None:
         f"hdfs://{info.work_directory()}/{config['hadoop']['union_directory']}/part-00000"
     )
     union_file_data_frame = union_file.toDF('string').rdd.map(get_row).toDF()
-    print(union_file_data_frame.take(5))
+
     union_file_data_frame.write\
         .format('hive').mode('append')\
         .insertInto(f'{config["hive"]["database"]}.{config["hive"]["table"]}')
@@ -151,7 +151,7 @@ if __name__ == '__main__':
 
     PROCESSING_DATE = info.date
 
-    union_parts(info)
+    # union_parts(info)
 
     if not is_union_success(info):
         LOGGER.error('Union parts operation is not success.')
