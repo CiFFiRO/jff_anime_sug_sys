@@ -1,4 +1,5 @@
 import datetime
+import string
 
 import pyspark.sql
 import yaml
@@ -33,6 +34,13 @@ class ProcessingInfo:
         """
         return f"{self.config['hadoop']['data_directory']}/{self.date}"
 
+    def table_name(self) -> str:
+        """Return full work table name.
+
+        :return:
+        """
+        return f'`{self.config["hive"]["database"]}`.`{self.config["hive"]["table"]}_{self.date.replace("-", "")}`'
+
 
 def build_precessing_info() -> Optional[ProcessingInfo]:
     """Setup all requirements and aggregate it into info object.
@@ -56,8 +64,10 @@ def build_precessing_info() -> Optional[ProcessingInfo]:
         config = yaml.load(file, Loader=yaml.BaseLoader)
 
     spark_config = SparkConf().setAppName("myFirstApp").setMaster(master)
-    spark_config.set("fs.s3a.aws.credentials.provider", "org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider")
-    spark_config.set('hive.exec.dynamic.partition.mode', 'nonstrict')
+    spark_config.set(
+        "spark.hadoop.fs.s3a.aws.credentials.provider",
+        "org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider"
+    )
     spark_context = SparkContext(conf=spark_config)
     sql_context = SQLContext(spark_context)
     hive_context = HiveContext(spark_context)
@@ -114,7 +124,6 @@ def get_row(row: pyspark.sql.Row) -> pyspark.sql.Row:
     except:
         result = {key: None for key in ('user_name', 'anime_id', 'score', 'status')}
 
-    result['_processing_date'] = PROCESSING_DATE
     return pyspark.sql.Row(**result)
 
 
@@ -131,14 +140,20 @@ def write_data_into_table(info: ProcessingInfo) -> None:
     )
     union_file_data_frame = union_file.toDF('string').rdd.map(get_row).toDF()
 
-    union_file_data_frame.write\
-        .format('hive').mode('append')\
-        .insertInto(f'{config["hive"]["database"]}.{config["hive"]["table"]}')
+    with open(config['hive']['create_script_path'], 'r') as script:
+        script_text = string.Template('\n'.join(script.readlines())).substitute(
+            table_name=info.table_name()
+        )
+
+    hive_context.sql(script_text)
+    union_file_data_frame.registerTempTable('tmp_table_union')
+    hive_context.sql(
+        f'insert into table {info.table_name()} '
+        f'select `user_name`, `anime_id`, `score`, `status` from `tmp_table_union`'
+    )
 
 
 if __name__ == '__main__':
-    global PROCESSING_DATE
-
     logging.basicConfig(
         format="[%(asctime)s] %(levelname)s [%(name)s.%(funcName)s:%(lineno)d] %(message)s",
         datefmt="%d/%b/%Y %H:%M:%S",
@@ -149,9 +164,7 @@ if __name__ == '__main__':
     info = build_precessing_info()
     assert info is not None
 
-    PROCESSING_DATE = info.date
-
-    # union_parts(info)
+    union_parts(info)
 
     if not is_union_success(info):
         LOGGER.error('Union parts operation is not success.')

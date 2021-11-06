@@ -6,3 +6,4 @@ hadoop:
 hive:
   database: anime
   table: user_score
+  create_script_path: spark/script.sql
