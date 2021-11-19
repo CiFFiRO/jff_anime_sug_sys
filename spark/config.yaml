@@ -1,9 +1,0 @@
-hadoop:
-  data_directory: /user/data/kafka/anime-events
-  part_prefix: anime-events
-  union_directory: union
-
-hive:
-  database: anime
-  table: user_score
-  create_script_path: spark/script.sql

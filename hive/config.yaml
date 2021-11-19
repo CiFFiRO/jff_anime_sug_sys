@@ -1,0 +1,17 @@
+other:
+  mal_file: ../animelist_1636941119_-_7066474.xml
+
+hadoop:
+  data_directory: /user/data/kafka/anime-events
+  part_prefix: anime-events
+  union_directory: union
+
+hive:
+  database: anime
+  table: user_score
+  mal_table: my_completed_list
+  script_path:
+    create_batch: hive/create_batch.sql
+    create_base: hive/create_base.sql
+    enrichment: hive/enrichment.sql
+    update: hive/collaborative_filtering.sql

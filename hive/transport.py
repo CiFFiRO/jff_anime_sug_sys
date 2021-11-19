@@ -60,7 +60,7 @@ def build_precessing_info() -> Optional[ProcessingInfo]:
         LOGGER.error(f'Script executed with bad date format: {processing_date} instead of %y-%m-%d')
         return None
 
-    with open('spark/config.yaml', 'r') as file:
+    with open('hive/config.yaml', 'r') as file:
         config = yaml.load(file, Loader=yaml.BaseLoader)
 
     spark_config = SparkConf().setAppName("myFirstApp").setMaster(master)
@@ -140,7 +140,7 @@ def write_data_into_table(info: ProcessingInfo) -> None:
     )
     union_file_data_frame = union_file.toDF('string').rdd.map(get_row).toDF()
 
-    with open(config['hive']['create_script_path'], 'r') as script:
+    with open(config['hive']['script_path']['create_batch'], 'r') as script:
         script_text = string.Template('\n'.join(script.readlines())).substitute(
             table_name=info.table_name()
         )
@@ -151,6 +151,27 @@ def write_data_into_table(info: ProcessingInfo) -> None:
         f'insert into table {info.table_name()} '
         f'select `user_name`, `anime_id`, `score`, `status` from `tmp_table_union`'
     )
+
+
+def update_suggestions(info: ProcessingInfo) -> None:
+    spark_context, sql_context, hive_context, config = info.spark_context, info.sql_context, \
+                                                       info.hive_context, info.config
+
+    with open(config['hive']['script_path']['create_base'], 'r') as script:
+        create_base_script = '\n'.join(script.readlines())
+
+    for create_statement in create_base_script.split(';')[:2]:
+        hive_context.sql(create_statement+';')
+
+    with open(config['hive']['script_path']['enrichment'], 'r') as script:
+        enrichment_script = string.Template('\n'.join(script.readlines())).substitute(
+            batch_table=info.table_name()
+        )
+    hive_context.sql(enrichment_script)
+
+    with open(config['hive']['script_path']['update'], 'r') as script:
+        collaborative_filtering_script = '\n'.join(script.readlines())
+    hive_context.sql(collaborative_filtering_script)
 
 
 if __name__ == '__main__':
@@ -164,9 +185,10 @@ if __name__ == '__main__':
     info = build_precessing_info()
     assert info is not None
 
-    union_parts(info)
+    # union_parts(info)
 
     if not is_union_success(info):
         LOGGER.error('Union parts operation is not success.')
     else:
-        write_data_into_table(info)
+        # write_data_into_table(info)
+        update_suggestions(info)
